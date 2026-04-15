@@ -4,8 +4,6 @@ module clock #(
     parameter integer CLK_FREQ_HZ      = 10000,
     parameter         KEY_ACTIVE_LEVEL = 1'b0,
     parameter         SEG_ACTIVE_LOW   = 1'b0,
-    parameter         DIG_ACTIVE_LOW   = 1'b0,
-    parameter         BEEP_ACTIVE_HIGH = 1'b1,
     parameter         ENABLE_ALARM     = 1'b0
 )(
     input  wire clk,
@@ -14,9 +12,12 @@ module clock #(
     input  wire qd_in,
     input  wire pulse_in,
     input  wire clr_in,
-    output wire [7:0] seg,
-    output wire [5:0] dig,
-    output wire       beep
+    output wire [7:0] lg1_seg,
+    output wire [3:0] lg2_bcd,
+    output wire [3:0] lg3_bcd,
+    output wire [3:0] lg4_bcd,
+    output wire [3:0] lg5_bcd,
+    output wire [3:0] lg6_bcd
 );
 
 wire tick_1hz;
@@ -61,7 +62,6 @@ wire [3:0] alarm_hour_ones;
 wire [3:0] alarm_min_tens;
 wire [3:0] alarm_min_ones;
 wire       alarm_enable;
-wire       buzzer_en;
 
 wire [3:0] dig0_bcd;
 wire [3:0] dig1_bcd;
@@ -71,6 +71,7 @@ wire [3:0] dig4_bcd;
 wire [3:0] dig5_bcd;
 wire [5:0] blank_mask;
 wire [5:0] dp_mask;
+wire [7:0] lg1_seg_raw;
 
 // Shared counters and key logic reduce register usage on MAX7000S.
 input_timebase #(
@@ -173,7 +174,7 @@ if (ENABLE_ALARM) begin : g_alarm_on
         .alarm_min_tens    (alarm_min_tens),
         .alarm_min_ones    (alarm_min_ones),
         .alarm_enable      (alarm_enable),
-        .buzzer_en         (buzzer_en)
+        .buzzer_en         ()
     );
 end else begin : g_alarm_off
     assign alarm_hour_tens = 4'd0;
@@ -181,7 +182,6 @@ end else begin : g_alarm_off
     assign alarm_min_tens  = 4'd0;
     assign alarm_min_ones  = 4'd0;
     assign alarm_enable    = 1'b0;
-    assign buzzer_en       = 1'b0;
 end
 endgenerate
 
@@ -212,26 +212,23 @@ display_mux u_display_mux (
     .dp_mask        (dp_mask)
 );
 
-// Scan one digit at a time onto the shared segment bus.
-seg_scan #(
-    .SEG_ACTIVE_LOW(SEG_ACTIVE_LOW),
-    .DIG_ACTIVE_LOW(DIG_ACTIVE_LOW)
-) u_seg_scan (
-    .clk       (clk),
-    .rst_n     (rst_n),
-    .tick_scan (tick_scan),
-    .dig0_bcd  (dig0_bcd),
-    .dig1_bcd  (dig1_bcd),
-    .dig2_bcd  (dig2_bcd),
-    .dig3_bcd  (dig3_bcd),
-    .dig4_bcd  (dig4_bcd),
-    .dig5_bcd  (dig5_bcd),
-    .blank_mask(blank_mask),
-    .dp_mask   (dp_mask),
-    .dig_sel   (dig),
-    .seg_out   (seg)
+// LG1 is a direct seven-segment digit on TEC-8.
+seg_decoder #(
+    .SEG_ACTIVE_LOW(SEG_ACTIVE_LOW)
+) u_lg1_decoder (
+    .bcd_in (dig5_bcd),
+    .blank  (blank_mask[5]),
+    .dp_on  (dp_mask[5]),
+    .seg_out(lg1_seg_raw)
 );
 
-assign beep = BEEP_ACTIVE_HIGH ? buzzer_en : ~buzzer_en;
+assign lg1_seg = lg1_seg_raw;
+
+// LG2~LG6 are BCD-input display digits.
+assign lg2_bcd = blank_mask[4] ? 4'hF : dig4_bcd;
+assign lg3_bcd = blank_mask[3] ? 4'hF : dig3_bcd;
+assign lg4_bcd = blank_mask[2] ? 4'hF : dig2_bcd;
+assign lg5_bcd = blank_mask[1] ? 4'hF : dig1_bcd;
+assign lg6_bcd = blank_mask[0] ? 4'hF : dig0_bcd;
 
 endmodule

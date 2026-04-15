@@ -1,0 +1,15 @@
+db/
+incremental_db/
+*.asm.rpt
+*.done
+*.fit.rpt
+*.fit.summary
+*.flow.rpt
+*.map.rpt
+*.map.summary
+*.pin
+*.pof
+*.qws
+*.tan.rpt
+*.tan.summary
+*.vvp

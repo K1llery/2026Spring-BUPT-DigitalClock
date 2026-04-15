@@ -1,0 +1,114 @@
+# -------------------------------------------------------------------------- #
+#
+# Copyright (C) 1991-2009 Altera Corporation
+# Your use of Altera Corporation's design tools, logic functions 
+# and other software and tools, and its AMPP partner logic 
+# functions, and any output files from any of the foregoing 
+# (including device programming or simulation files), and any 
+# associated documentation or information are expressly subject 
+# to the terms and conditions of the Altera Program License 
+# Subscription Agreement, Altera MegaCore Function License 
+# Agreement, or other applicable license agreement, including, 
+# without limitation, that your use is for the sole purpose of 
+# programming logic devices manufactured by Altera and sold by 
+# Altera or its authorized distributors.  Please refer to the 
+# applicable agreement for further details.
+#
+# -------------------------------------------------------------------------- #
+#
+# Quartus II
+# Version 9.0 Build 235 06/17/2009 Service Pack 2 SJ Web Edition
+# Date created = 11:13:22  April 08, 2026
+#
+# -------------------------------------------------------------------------- #
+#
+# Notes:
+#
+# 1) The default values for assignments are stored in the file:
+#		clock_assignment_defaults.qdf
+#    If this file doesn't exist, see file:
+#		assignment_defaults.qdf
+#
+# 2) Altera recommends that you do not modify this file. This
+#    file is updated automatically by the Quartus II software
+#    and any changes you make may be lost or overwritten.
+#
+# -------------------------------------------------------------------------- #
+
+
+set_global_assignment -name FAMILY MAX7000S
+set_global_assignment -name DEVICE "EPM7128SLC84-15"
+set_global_assignment -name TOP_LEVEL_ENTITY clock
+set_global_assignment -name ORIGINAL_QUARTUS_VERSION "9.0 SP2"
+set_global_assignment -name PROJECT_CREATION_TIME_DATE "11:13:22  APRIL 08, 2026"
+set_global_assignment -name LAST_QUARTUS_VERSION "9.0 SP2"
+set_global_assignment -name USE_GENERATED_PHYSICAL_CONSTRAINTS OFF -section_id eda_blast_fpga
+set_global_assignment -name MIN_CORE_JUNCTION_TEMP 0
+set_global_assignment -name MAX_CORE_JUNCTION_TEMP 85
+set_global_assignment -name VERILOG_FILE alarm_core.v
+set_global_assignment -name VERILOG_FILE clk_div.v
+set_global_assignment -name VERILOG_FILE display_mux.v
+set_global_assignment -name VERILOG_FILE input_timebase.v
+set_global_assignment -name VERILOG_FILE key_filter.v
+set_global_assignment -name VERILOG_FILE seg_decoder.v
+set_global_assignment -name VERILOG_FILE seg_scan.v
+set_global_assignment -name VERILOG_FILE set_ctrl.v
+set_global_assignment -name VERILOG_FILE time_core.v
+set_global_assignment -name VERILOG_FILE clock.v
+set_global_assignment -name MISC_FILE "D:/������/clock.dpf"
+set_global_assignment -name MAX7000_OPTIMIZATION_TECHNIQUE AREA
+
+# ------------------------------------------------------------
+# TEC-8 pin assignments (EPM7128)
+# Clock / reset / keys
+set_location_assignment PIN_55 -to clk
+set_location_assignment PIN_1 -to rst_n
+set_location_assignment PIN_60 -to qd_in
+set_location_assignment PIN_61 -to pulse_in
+set_location_assignment PIN_54 -to clr_in
+set_location_assignment PIN_81 -to sw_dir
+
+# LG1: 7-segment direct output (D0..D7)
+set_location_assignment PIN_44 -to lg1_seg[0]
+set_location_assignment PIN_45 -to lg1_seg[1]
+set_location_assignment PIN_46 -to lg1_seg[2]
+set_location_assignment PIN_48 -to lg1_seg[3]
+set_location_assignment PIN_49 -to lg1_seg[4]
+set_location_assignment PIN_50 -to lg1_seg[5]
+set_location_assignment PIN_51 -to lg1_seg[6]
+set_location_assignment PIN_52 -to lg1_seg[7]
+
+# LG2..LG6: BCD input digits (A/B/C/D)
+set_location_assignment PIN_37 -to lg2_bcd[0]
+set_location_assignment PIN_39 -to lg2_bcd[1]
+set_location_assignment PIN_40 -to lg2_bcd[2]
+set_location_assignment PIN_41 -to lg2_bcd[3]
+
+set_location_assignment PIN_35 -to lg3_bcd[0]
+set_location_assignment PIN_36 -to lg3_bcd[1]
+set_location_assignment PIN_17 -to lg3_bcd[2]
+set_location_assignment PIN_18 -to lg3_bcd[3]
+
+set_location_assignment PIN_30 -to lg4_bcd[0]
+set_location_assignment PIN_31 -to lg4_bcd[1]
+set_location_assignment PIN_33 -to lg4_bcd[2]
+set_location_assignment PIN_34 -to lg4_bcd[3]
+
+set_location_assignment PIN_25 -to lg5_bcd[0]
+set_location_assignment PIN_27 -to lg5_bcd[1]
+set_location_assignment PIN_28 -to lg5_bcd[2]
+set_location_assignment PIN_29 -to lg5_bcd[3]
+
+set_location_assignment PIN_20 -to lg6_bcd[0]
+set_location_assignment PIN_21 -to lg6_bcd[1]
+set_location_assignment PIN_22 -to lg6_bcd[2]
+set_location_assignment PIN_24 -to lg6_bcd[3]
+
+# NOTE:
+# PIN_52 is shared with SPEAKER on TEC-8. In this pin plan, it is used for lg1_seg[7].
+set_global_assignment -name MAX7000_DEVICE_IO_STANDARD TTL
+set_location_assignment PIN_62 -to TCK
+set_location_assignment PIN_14 -to TDI
+set_location_assignment PIN_71 -to TDO
+set_location_assignment PIN_23 -to TMS
+set_global_assignment -name MISC_FILE "D:/电子钟/clock.dpf"
