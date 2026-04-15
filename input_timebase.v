@@ -1,8 +1,7 @@
 // Shared time-base and compact 3-key processing for CPLD resource saving.
 module input_timebase #(
     parameter integer CLK_FREQ_HZ      = 10000,
-    parameter         KEY_ACTIVE_LEVEL = 1'b0,
-    parameter integer SCAN_TICK_HZ     = 1000
+    parameter         KEY_ACTIVE_LEVEL = 1'b0
 )(
     input  wire clk,
     input  wire rst_n,
@@ -10,7 +9,6 @@ module input_timebase #(
     input  wire key_pulse_in,
     input  wire key_rst_in,
     output reg  tick_1hz,
-    output reg  tick_scan,
     output reg  tick_blink,
     output reg  key_mode_pulse,
     output reg  key_pulse_pulse,
@@ -33,13 +31,9 @@ end
 endfunction
 
 localparam integer CNT_1HZ_MAX       = (CLK_FREQ_HZ / 1) - 1;
-localparam integer CNT_SCAN_MAX_RAW  = (CLK_FREQ_HZ / SCAN_TICK_HZ) - 1;
-localparam integer CNT_SCAN_MAX       = (CNT_SCAN_MAX_RAW   < 0) ? 0 : CNT_SCAN_MAX_RAW;
 localparam integer W_CNT_1HZ    = calc_width(CNT_1HZ_MAX + 1);
-localparam integer W_CNT_SCAN   = calc_width(CNT_SCAN_MAX + 1);
 
 reg [W_CNT_1HZ-1:0] cnt_1hz;
-reg [W_CNT_SCAN-1:0] cnt_scan;
 
 reg sync0_mode;
 reg sync1_mode;
@@ -63,9 +57,7 @@ assign key_rst_act   = (sync1_rst   == KEY_ACTIVE_LEVEL);
 always @(posedge clk or negedge rst_n) begin
     if (!rst_n) begin
         cnt_1hz          <= {W_CNT_1HZ{1'b0}};
-        cnt_scan         <= {W_CNT_SCAN{1'b0}};
         tick_1hz         <= 1'b0;
-        tick_scan        <= 1'b0;
         tick_blink       <= 1'b0;
 
         sync0_mode       <= ~KEY_ACTIVE_LEVEL;
@@ -90,7 +82,6 @@ always @(posedge clk or negedge rst_n) begin
         sync1_rst <= sync0_rst;
 
         tick_1hz    <= 1'b0;
-        tick_scan   <= 1'b0;
         tick_blink  <= 1'b0;
 
         key_mode_pulse   <= 1'b0;
@@ -103,13 +94,6 @@ always @(posedge clk or negedge rst_n) begin
             tick_blink <= 1'b1;
         end else begin
             cnt_1hz <= cnt_1hz + {{(W_CNT_1HZ-1){1'b0}}, 1'b1};
-        end
-
-        if (cnt_scan >= CNT_SCAN_MAX[W_CNT_SCAN-1:0]) begin
-            cnt_scan  <= {W_CNT_SCAN{1'b0}};
-            tick_scan <= 1'b1;
-        end else begin
-            cnt_scan <= cnt_scan + {{(W_CNT_SCAN-1){1'b0}}, 1'b1};
         end
 
         // Lightweight key handling: synchronize then detect press edges.

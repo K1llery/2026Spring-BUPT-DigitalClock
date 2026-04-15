@@ -1,7 +1,7 @@
 // Top-level integration:
 // clock ticks, keys, mode control, time core, alarm core and display path.
 module clock #(
-    parameter integer CLK_FREQ_HZ      = 10000,
+    parameter integer CLK_FREQ_HZ      = 1000000,
     parameter         KEY_ACTIVE_LEVEL = 1'b0,
     parameter         SEG_ACTIVE_LOW   = 1'b0,
     parameter         ENABLE_ALARM     = 1'b0
@@ -21,7 +21,6 @@ module clock #(
 );
 
 wire tick_1hz;
-wire tick_scan;
 wire tick_blink;
 
 wire key_mode_pulse;
@@ -76,8 +75,7 @@ wire [7:0] lg1_seg_raw;
 // Shared counters and key logic reduce register usage on MAX7000S.
 input_timebase #(
     .CLK_FREQ_HZ     (CLK_FREQ_HZ),
-    .KEY_ACTIVE_LEVEL(KEY_ACTIVE_LEVEL),
-    .SCAN_TICK_HZ    (1000)
+    .KEY_ACTIVE_LEVEL(KEY_ACTIVE_LEVEL)
 ) u_input_timebase (
     .clk             (clk),
     .rst_n           (rst_n),
@@ -85,7 +83,6 @@ input_timebase #(
     .key_pulse_in    (pulse_in),
     .key_rst_in      (clr_in),
     .tick_1hz        (tick_1hz),
-    .tick_scan       (tick_scan),
     .tick_blink      (tick_blink),
     .key_mode_pulse  (key_mode_pulse),
     .key_pulse_pulse (key_pulse_pulse),

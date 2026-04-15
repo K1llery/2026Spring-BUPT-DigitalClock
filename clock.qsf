@@ -55,7 +55,6 @@ set_global_assignment -name VERILOG_FILE seg_scan.v
 set_global_assignment -name VERILOG_FILE set_ctrl.v
 set_global_assignment -name VERILOG_FILE time_core.v
 set_global_assignment -name VERILOG_FILE clock.v
-set_global_assignment -name MISC_FILE "D:/������/clock.dpf"
 set_global_assignment -name MAX7000_OPTIMIZATION_TECHNIQUE AREA
 
 # ------------------------------------------------------------
@@ -107,8 +106,3 @@ set_location_assignment PIN_24 -to lg6_bcd[3]
 # NOTE:
 # PIN_52 is shared with SPEAKER on TEC-8. In this pin plan, it is used for lg1_seg[7].
 set_global_assignment -name MAX7000_DEVICE_IO_STANDARD TTL
-set_location_assignment PIN_62 -to TCK
-set_location_assignment PIN_14 -to TDI
-set_location_assignment PIN_71 -to TDO
-set_location_assignment PIN_23 -to TMS
-set_global_assignment -name MISC_FILE "D:/电子钟/clock.dpf"
