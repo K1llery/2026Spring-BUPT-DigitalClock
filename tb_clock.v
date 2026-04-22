@@ -90,6 +90,15 @@ initial begin
         $finish;
     end
 
+    // With default ENABLE_ALARM=0, mode loop is RUN->SET_HOUR->SET_MIN->SET_SEC->RUN.
+    press_mode(); // SET_MIN
+    press_mode(); // SET_SEC
+    press_mode(); // RUN
+    if (uut.mode_state !== 3'd0) begin
+        $display("FAIL: mode loop should return to RUN when alarm is disabled, mode=%0d", uut.mode_state);
+        $finish;
+    end
+
     $display("PASS: basic reset/run/edit behavior verified");
     $finish;
 end

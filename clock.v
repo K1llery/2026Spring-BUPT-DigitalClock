@@ -60,7 +60,6 @@ wire [3:0] alarm_hour_tens;
 wire [3:0] alarm_hour_ones;
 wire [3:0] alarm_min_tens;
 wire [3:0] alarm_min_ones;
-wire       alarm_enable;
 
 wire [3:0] dig0_bcd;
 wire [3:0] dig1_bcd;
@@ -69,7 +68,6 @@ wire [3:0] dig3_bcd;
 wire [3:0] dig4_bcd;
 wire [3:0] dig5_bcd;
 wire [5:0] blank_mask;
-wire [5:0] dp_mask;
 wire [7:0] lg1_seg_raw;
 
 // Shared counters and key logic reduce register usage on MAX7000S.
@@ -97,7 +95,9 @@ assign key_sub_act = dir_is_add ? 1'b0 : key_pulse_pulse;
 assign key_rst_act = key_rst_pulse;
 
 // Mode control decides whether time runs or a selected field is edited.
-set_ctrl u_set_ctrl (
+set_ctrl #(
+    .ENABLE_ALARM(ENABLE_ALARM)
+) u_set_ctrl (
     .clk               (clk),
     .rst_n             (rst_n),
     .tick_1hz          (tick_1hz),
@@ -170,7 +170,7 @@ if (ENABLE_ALARM) begin : g_alarm_on
         .alarm_hour_ones   (alarm_hour_ones),
         .alarm_min_tens    (alarm_min_tens),
         .alarm_min_ones    (alarm_min_ones),
-        .alarm_enable      (alarm_enable),
+        .alarm_enable      (),
         .buzzer_en         ()
     );
 end else begin : g_alarm_off
@@ -178,12 +178,13 @@ end else begin : g_alarm_off
     assign alarm_hour_ones = 4'd0;
     assign alarm_min_tens  = 4'd0;
     assign alarm_min_ones  = 4'd0;
-    assign alarm_enable    = 1'b0;
 end
 endgenerate
 
 // Build the six display digits and blinking mask.
-display_mux u_display_mux (
+display_mux #(
+    .ENABLE_ALARM(ENABLE_ALARM)
+) u_display_mux (
     .clk            (clk),
     .rst_n          (rst_n),
     .tick_blink     (tick_blink),
@@ -198,15 +199,13 @@ display_mux u_display_mux (
     .alarm_hour_ones(alarm_hour_ones),
     .alarm_min_tens (alarm_min_tens),
     .alarm_min_ones (alarm_min_ones),
-    .alarm_enable   (alarm_enable),
     .dig0_bcd       (dig0_bcd),
     .dig1_bcd       (dig1_bcd),
     .dig2_bcd       (dig2_bcd),
     .dig3_bcd       (dig3_bcd),
     .dig4_bcd       (dig4_bcd),
     .dig5_bcd       (dig5_bcd),
-    .blank_mask     (blank_mask),
-    .dp_mask        (dp_mask)
+    .blank_mask     (blank_mask)
 );
 
 // LG1 is a direct seven-segment digit on TEC-8.
@@ -215,7 +214,8 @@ seg_decoder #(
 ) u_lg1_decoder (
     .bcd_in (dig5_bcd),
     .blank  (blank_mask[5]),
-    .dp_on  (dp_mask[5]),
+    // LG1-D7 is shared and decimal point is not used in this project.
+    .dp_on  (1'b0),
     .seg_out(lg1_seg_raw)
 );
 
