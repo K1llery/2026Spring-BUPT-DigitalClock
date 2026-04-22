@@ -30,8 +30,35 @@ begin
 end
 endfunction
 
-localparam integer CNT_1HZ_MAX       = (CLK_FREQ_HZ / 1) - 1;
-localparam integer W_CNT_1HZ    = calc_width(CNT_1HZ_MAX + 1);
+function integer pick_tap_bit;
+    input integer target_cycles;
+    input integer max_bit;
+    integer interval_cycles;
+    integer bit_idx;
+begin
+    bit_idx = 0;
+    interval_cycles = 2;
+    while ((interval_cycles < target_cycles) && (bit_idx < max_bit)) begin
+        interval_cycles = interval_cycles << 1;
+        bit_idx = bit_idx + 1;
+    end
+    pick_tap_bit = bit_idx;
+end
+endfunction
+
+localparam integer CNT_1HZ_MAX            = (CLK_FREQ_HZ / 1) - 1;
+localparam integer W_CNT_1HZ              = calc_width(CNT_1HZ_MAX + 1);
+localparam integer MAX_TAP_BIT            = (W_CNT_1HZ > 1) ? (W_CNT_1HZ - 1) : 0;
+localparam integer SAMPLE_TARGET_CYCLES_R = CLK_FREQ_HZ / 250;
+localparam integer SAMPLE_TARGET_CYCLES   = (SAMPLE_TARGET_CYCLES_R < 2) ? 2 : SAMPLE_TARGET_CYCLES_R;
+localparam integer HOLD_TARGET_CYCLES_R   = (CLK_FREQ_HZ * 65) / 1000;
+localparam integer HOLD_TARGET_CYCLES     = (HOLD_TARGET_CYCLES_R < 2) ? 2 : HOLD_TARGET_CYCLES_R;
+localparam integer SAMPLE_TAP_BIT         = pick_tap_bit(SAMPLE_TARGET_CYCLES, MAX_TAP_BIT);
+localparam integer HOLD_TAP_BIT           = pick_tap_bit(HOLD_TARGET_CYCLES, MAX_TAP_BIT);
+localparam integer HOLD_TICK_CYCLES       = (1 << (HOLD_TAP_BIT + 1));
+localparam integer HOLD_START_TICKS_R     = ((CLK_FREQ_HZ / 2) + HOLD_TICK_CYCLES - 1) / HOLD_TICK_CYCLES;
+localparam integer HOLD_START_TICKS       = (HOLD_START_TICKS_R < 1) ? 1 : HOLD_START_TICKS_R;
+localparam integer HOLD_COUNT_W           = calc_width(HOLD_START_TICKS + 1);
 
 reg [W_CNT_1HZ-1:0] cnt_1hz;
 
@@ -42,17 +69,27 @@ reg sync1_pulse;
 reg sync0_rst;
 reg sync1_rst;
 
-reg prev_mode_pressed;
-reg prev_pulse_pressed;
-reg prev_rst_pressed;
+reg sample_tap_prev;
+reg hold_tap_prev;
+reg mode_sample_prev;
+reg pulse_sample_prev;
+reg rst_sample_prev;
+reg mode_pressed;
+reg pulse_pressed;
+reg rst_pressed;
+reg [HOLD_COUNT_W-1:0] pulse_hold_ticks;
 
 wire key_mode_act;
 wire key_pulse_act;
 wire key_rst_act;
+wire sample_tick;
+wire hold_tick;
 
 assign key_mode_act  = (sync1_mode  == KEY_ACTIVE_LEVEL);
 assign key_pulse_act = (sync1_pulse == KEY_ACTIVE_LEVEL);
 assign key_rst_act   = (sync1_rst   == KEY_ACTIVE_LEVEL);
+assign sample_tick   = cnt_1hz[SAMPLE_TAP_BIT] & ~sample_tap_prev;
+assign hold_tick     = cnt_1hz[HOLD_TAP_BIT]   & ~hold_tap_prev;
 
 always @(posedge clk or negedge rst_n) begin
     if (!rst_n) begin
@@ -66,9 +103,15 @@ always @(posedge clk or negedge rst_n) begin
         sync1_pulse      <= ~KEY_ACTIVE_LEVEL;
         sync0_rst        <= ~KEY_ACTIVE_LEVEL;
         sync1_rst        <= ~KEY_ACTIVE_LEVEL;
-        prev_mode_pressed  <= 1'b0;
-        prev_pulse_pressed <= 1'b0;
-        prev_rst_pressed   <= 1'b0;
+        sample_tap_prev  <= 1'b0;
+        hold_tap_prev    <= 1'b0;
+        mode_sample_prev <= 1'b0;
+        pulse_sample_prev <= 1'b0;
+        rst_sample_prev  <= 1'b0;
+        mode_pressed     <= 1'b0;
+        pulse_pressed    <= 1'b0;
+        rst_pressed      <= 1'b0;
+        pulse_hold_ticks <= {HOLD_COUNT_W{1'b0}};
 
         key_mode_pulse   <= 1'b0;
         key_pulse_pulse  <= 1'b0;
@@ -96,20 +139,54 @@ always @(posedge clk or negedge rst_n) begin
             cnt_1hz <= cnt_1hz + {{(W_CNT_1HZ-1){1'b0}}, 1'b1};
         end
 
-        // Lightweight key handling: synchronize then detect press edges.
-        if (key_mode_act && !prev_mode_pressed) begin
-            key_mode_pulse <= 1'b1;
-        end
-        if (key_pulse_act && !prev_pulse_pressed) begin
-            key_pulse_pulse <= 1'b1;
-        end
-        if (key_rst_act && !prev_rst_pressed) begin
-            key_rst_pulse <= 1'b1;
+        if (sample_tick) begin
+            if (key_mode_act == mode_sample_prev) begin
+                if (mode_pressed != key_mode_act) begin
+                    mode_pressed <= key_mode_act;
+                    if (key_mode_act) begin
+                        key_mode_pulse <= 1'b1;
+                    end
+                end
+            end
+
+            if (key_pulse_act == pulse_sample_prev) begin
+                if (pulse_pressed != key_pulse_act) begin
+                    pulse_pressed <= key_pulse_act;
+                    if (key_pulse_act) begin
+                        pulse_hold_ticks <= {HOLD_COUNT_W{1'b0}};
+                        key_pulse_pulse  <= 1'b1;
+                    end else begin
+                        pulse_hold_ticks <= {HOLD_COUNT_W{1'b0}};
+                    end
+                end
+            end
+
+            if (key_rst_act == rst_sample_prev) begin
+                if (rst_pressed != key_rst_act) begin
+                    rst_pressed <= key_rst_act;
+                    if (key_rst_act) begin
+                        key_rst_pulse <= 1'b1;
+                    end
+                end
+            end
+
+            mode_sample_prev  <= key_mode_act;
+            pulse_sample_prev <= key_pulse_act;
+            rst_sample_prev   <= key_rst_act;
         end
 
-        prev_mode_pressed  <= key_mode_act;
-        prev_pulse_pressed <= key_pulse_act;
-        prev_rst_pressed   <= key_rst_act;
+        if (!pulse_pressed) begin
+            pulse_hold_ticks <= {HOLD_COUNT_W{1'b0}};
+        end else if (hold_tick) begin
+            if (pulse_hold_ticks >= (HOLD_START_TICKS - 1)) begin
+                key_pulse_pulse <= 1'b1;
+            end else begin
+                pulse_hold_ticks <= pulse_hold_ticks + {{(HOLD_COUNT_W-1){1'b0}}, 1'b1};
+            end
+        end
+
+        sample_tap_prev <= cnt_1hz[SAMPLE_TAP_BIT];
+        hold_tap_prev   <= cnt_1hz[HOLD_TAP_BIT];
     end
 end
 
